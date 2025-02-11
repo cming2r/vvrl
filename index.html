@@ -1,102 +1,102 @@
-<!DOCTYPE html>
+import React, { useState } from 'react';
+import { Link2, Copy, CheckCircle } from 'lucide-react';
 
-<html lang="zh-TW">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>預產期計算器</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f8ff;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #ff69b4;
-            text-align: center;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            color: #333;
-        }
-        input[type="date"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-bottom: 10px;
-        }
-        button {
-            background-color: #ff69b4;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #ff1493;
-        }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 4px;
-            background-color: #f8f9fa;
-            display: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>預產期計算器</h1>
-        <div class="form-group">
-            <label for="lastPeriod">請輸入最後一次月經的第一天：</label>
-            <input type="date" id="lastPeriod" required>
+const URLShortener = () => {
+  const [url, setUrl] = useState('');
+  const [shortUrl, setShortUrl] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('URL shortening failed');
+      }
+      
+      const data = await response.json();
+      setShortUrl(data.shortUrl);
+    } catch (err) {
+      setError('Failed to shorten URL. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shortUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      setError('Failed to copy to clipboard');
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto">
+        <div className="text-center">
+          <Link2 className="mx-auto h-12 w-12 text-blue-500" />
+          <h2 className="mt-6 text-3xl font-bold text-gray-900">URL Shortener</h2>
+          <p className="mt-2 text-gray-600">Enter a long URL to make it shorter</p>
         </div>
-        <button onclick="calculateDueDate()">計算預產期</button>
-        <div id="result"></div>
+
+        <form onSubmit={handleSubmit} className="mt-8">
+          <div className="rounded-md shadow-sm">
+            <input
+              type="url"
+              required
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Enter your URL here"
+              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {loading ? 'Shortening...' : 'Shorten URL'}
+          </button>
+        </form>
+
+        {error && (
+          <div className="mt-4 text-red-600 text-center">
+            {error}
+          </div>
+        )}
+
+        {shortUrl && (
+          <div className="mt-6">
+            <div className="flex items-center justify-between rounded-md bg-gray-50 px-4 py-3">
+              <span className="text-sm font-medium text-gray-900">{shortUrl}</span>
+              <button
+                onClick={copyToClipboard}
+                className="ml-2 p-2 text-gray-500 hover:text-gray-700"
+              >
+                {copied ? <CheckCircle className="h-5 w-5 text-green-500" /> : <Copy className="h-5 w-5" />}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
+  );
+};
 
-    <script>
-        function calculateDueDate() {
-            // 獲取輸入的日期
-            const lastPeriodDate = new Date(document.getElementById('lastPeriod').value);
-            
-            // 檢查是否有選擇日期
-            if (isNaN(lastPeriodDate.getTime())) {
-                alert('請選擇有效的日期！');
-                return;
-            }
-
-            // 計算預產期（最後一次月經第一天 + 280天）
-            const dueDate = new Date(lastPeriodDate);
-            dueDate.setDate(dueDate.getDate() + 280);
-
-            // 格式化日期顯示
-            const formattedDueDate = dueDate.toLocaleDateString('zh-TW', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-
-            // 顯示結果
-            const resultDiv = document.getElementById('result');
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = `<strong>您的預產期是：${formattedDueDate}</strong>`;
-        }
-    </script>
-</body>
-</html>
+export default URLShortener;
